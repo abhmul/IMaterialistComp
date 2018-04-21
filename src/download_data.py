@@ -19,7 +19,7 @@ from urllib3.util import Retry
 __author__ = "Nicolas Lecoy"
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+logger = logging.Logger("download_data", level=logging.INFO)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
@@ -71,16 +71,16 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--processes", type=int, default=12, help="Number of processes to use.")
     args = parser.parse_args()
 
-    logging.info("Downloading data from %s" % args.dataset)
-    logging.info("Downloading data into %s" % args.outdir)
-    logging.info("Starting download from image %s" % args.start)
+    logger.info("Downloading data from %s" % args.dataset)
+    logger.info("Downloading data into %s" % args.outdir)
+    logger.info("Starting download from image %s" % args.start)
     if args.max == -1:
-        logging.info("Downloading to end of data")
+        logger.info("Downloading to end of data")
         max_download = None
     else:
-        logging.info("Downloading to up to image %s" % args.max)
+        logger.info("Downloading to up to image %s" % args.max)
         max_download = args.max
-    logging.info("Using %s threads to download" % args.processes)
+    logger.info("Using %s threads to download" % args.processes)
 
     # get args and create output directory
     if not os.path.exists(args.outdir):
