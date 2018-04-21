@@ -19,8 +19,8 @@ from urllib3.util import Retry
 __author__ = "Nicolas Lecoy"
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-logger = logging.Logger("download_data", level=logging.INFO)
 logging.getLogger("requests").setLevel(logging.WARNING)
+logger = logging.Logger("download_data", level=logging.INFO)
 
 
 
