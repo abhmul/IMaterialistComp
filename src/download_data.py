@@ -31,15 +31,12 @@ def download_image(fnames_and_urls):
     :param fnames_and_urls: tuple containing absolute path and url of image
     """
     fname, url = fnames_and_urls
-    jpg_img = os.path.splitext(fname)[0] + ".jpg"
-    if os.path.exists(jpg_img):
-        os.rename(jpg_img, fname)
-    elif not os.path.exists(fname):
+    if not os.path.exists(fname):
         http = urllib3.PoolManager(retries=Retry(connect=3, read=2, redirect=3))
         response = http.request("GET", url)
         image = Image.open(io.BytesIO(response.data))
         image_rgb = image.convert("RGB")
-        image_rgb.save(fname, format='PNG')
+        image_rgb.save(fname, format='JPEG', quality=90)
 
 
 def parse_dataset(_dataset, _outdir, _max=None, start=0):
@@ -55,7 +52,7 @@ def parse_dataset(_dataset, _outdir, _max=None, start=0):
         data = json.load(f)
         for image in data["images"]:
             url = image["url"]
-            fname = os.path.join(_outdir, "{}.png".format(image["imageId"]))
+            fname = os.path.join(_outdir, "{}.jpg".format(image["imageId"]))
             _fnames_urls.append((fname, url))
     return _fnames_urls[start:_max]
 
