@@ -20,6 +20,7 @@ __author__ = "Nicolas Lecoy"
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 
