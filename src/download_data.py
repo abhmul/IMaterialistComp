@@ -8,7 +8,9 @@ import os
 import sys
 import json
 import urllib3
+# from joblib import Parallel, delayed
 import multiprocessing
+import logging
 
 from PIL import Image
 from tqdm import tqdm
@@ -17,6 +19,8 @@ from urllib3.util import Retry
 __author__ = "Nicolas Lecoy"
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
 
 
 def download_image(fnames_and_urls):
@@ -26,7 +30,10 @@ def download_image(fnames_and_urls):
     :param fnames_and_urls: tuple containing absolute path and url of image
     """
     fname, url = fnames_and_urls
-    if not os.path.exists(fname):
+    jpg_img = os.path.splitext(fname)[0] + ".jpg"
+    if os.path.exists(jpg_img):
+        os.rename(jpg_img, fname)
+    elif not os.path.exists(fname):
         http = urllib3.PoolManager(retries=Retry(connect=3, read=2, redirect=3))
         response = http.request("GET", url)
         image = Image.open(io.BytesIO(response.data))
@@ -34,7 +41,7 @@ def download_image(fnames_and_urls):
         image_rgb.save(fname, format='PNG')
 
 
-def parse_dataset(_dataset, _outdir, _max=None):
+def parse_dataset(_dataset, _outdir, _max=None, start=0):
     """
     parse the dataset to create a list of tuple containing absolute path and url of image
     :param _dataset: dataset to parse
@@ -47,9 +54,9 @@ def parse_dataset(_dataset, _outdir, _max=None):
         data = json.load(f)
         for image in data["images"]:
             url = image["url"]
-            fname = os.path.join(_outdir, "{}.jpg".format(image["imageId"]))
+            fname = os.path.join(_outdir, "{}.png".format(image["imageId"]))
             _fnames_urls.append((fname, url))
-    return _fnames_urls[:_max]
+    return _fnames_urls[start:_max]
 
 
 if __name__ == '__main__':
@@ -58,18 +65,36 @@ if __name__ == '__main__':
     parser.add_argument("outdir", help="Path to the the folder to download the dataset to.")
     parser.add_argument("-m", "--max", type=int, default=-1, help="Maximum number of images to download. " \
                                                                   "Defaults to all of them")
+    parser.add_argument("-s", "--start", type=int, default=0, help="Start number of images to download. " \
+                                                                  "Defaults to all of them")
+    parser.add_argument("-p", "--processes", type=int, default=12, help="Number of processes to use.")
     args = parser.parse_args()
+
+    logging.info("Downloading data from %s" % args.dataset)
+    logging.info("Downloading data into %s" % args.outdir)
+    logging.info("Starting download from image %s" % args.start)
+    if args.max == -1:
+        logging.info("Downloading to end of data")
+        max_download = None
+    else:
+        logging.info("Downloading to up to image %s" % args.max)
+        max_download = args.max
+    logging.info("Using %s threads to download" % args.processes)
 
     # get args and create output directory
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
     # parse json dataset file
-    fnames_urls = parse_dataset(args.dataset, args.outdir, _max=(None if args.max == -1 else args.max))
+    fnames_urls = parse_dataset(args.dataset, args.outdir, _max=max_download, start=args.start)
 
     # download data
-    pool = multiprocessing.Pool(processes=12)
+    pool = multiprocessing.Pool(processes=args.processes)
+    # parallel = Parallel(args.processes, backend='threading', verbose=0)
+    # parallel(delayed(download_image)(fname_urls) for fname_urls in tqdm(fnames_urls))
+
     with tqdm(total=len(fnames_urls)) as progress_bar:
+
         for _ in pool.imap_unordered(download_image, fnames_urls):
             progress_bar.update(1)
 
