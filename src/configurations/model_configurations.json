@@ -1,0 +1,11 @@
+{
+  "simple-cnn-0": {
+    "model_name": "simple_cnn"
+  },
+
+  "transfer-model-0": {
+    "model_name": "transfer_model",
+    "base_model": "inception-resnet-v2",
+    "mlp_units": 512
+  }
+}

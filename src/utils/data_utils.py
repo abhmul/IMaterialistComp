@@ -38,18 +38,20 @@ class IMaterialistData(object):
     @staticmethod
     def load_images(path_to_imgs):
         img_ids = get_data_ids(path_to_imgs)
+        img_ids.sort(key=lambda fname: int(os.path.splitext(fname)[0]))
         x = [None for _ in img_ids]
         img_ids_list = [None for _ in img_ids]
 
         logging.info("Opening images stored in %s" % path_to_imgs)
         for n, fname in enumerate(tqdm(img_ids)):
             img_id = int(os.path.splitext(fname)[0])
-            x[img_id - MIN_IMG_ID] = os.path.join(path_to_imgs, fname)
-            img_ids_list[img_id - MIN_IMG_ID] = img_id
+            x[n] = os.path.join(path_to_imgs, fname)
+            img_ids_list[n] = img_id
 
         assert all(val is not None for val in x)
         assert all(img_id is not None for img_id in img_ids_list)
-        img_ids_list = np.array(img_ids_list, dtype=np.uint8)
+        img_ids_list = np.array(img_ids_list, dtype=int)
+        x = np.asarray(x, dtype="O")
         return x, img_ids_list
 
     @staticmethod
@@ -60,7 +62,7 @@ class IMaterialistData(object):
         labels = np.zeros((len(csvfile), NUM_LABELS), dtype=np.int8)
         for i, label_ids in enumerate(csvfile.labelId):
             labels[csvfile.imageId[i] - MIN_IMG_ID, encode_label(np.array(list(map(int, label_ids.split()))))] = 1
-        return labels, csvfile.imageId
+        return labels, csvfile.imageId.values
 
     def load_labeled_data(self, path_to_imgs, path_to_labels):
         x, ids = self.load_images(path_to_imgs)
@@ -83,14 +85,14 @@ class IMaterialistData(object):
         return self.load_unlabeled_data(self.path_to_test)
 
     @staticmethod
-    def save_submission(save_path, predictions, thresholds=0.5):
+    def save_submission(save_path, predictions, img_ids, thresholds=0.5):
         """Thresholds can be a numpy array of shape 1 x NUM_LABELS or float"""
         assert predictions.ndim == 2
         num_test_samples = len(predictions)
         rows, labels = np.where(predictions >= thresholds)
         submission_array = np.empty((num_test_samples, 2), dtype="O")
+        submission_array[:, 0] = img_ids
         for i in range(num_test_samples):
-            submission_array[i, 0] = i + 1
             row_labels = labels[rows == i]
             submission_array[i, 1] = " ".join(str(label + MIN_LABEL) for label in row_labels)
         pd.DataFrame(submission_array, columns=["image_id", "label_id"]).to_csv(save_path, index=False)

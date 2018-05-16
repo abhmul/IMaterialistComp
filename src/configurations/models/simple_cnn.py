@@ -1,8 +1,8 @@
 from keras.models import Model
-from keras.layers import Conv2D, BatchNormalization, MaxPooling2D, Input, Activation, Flatten, Dense, Dropout
+from keras.layers import Conv2D, BatchNormalization, MaxPooling2D, Input, Activation, GlobalAveragePooling2D, Dense, Dropout
 
 
-def simple_cnn(num_outputs, filters=64, num_layers=2, img_size=(256, 256)):
+def simple_cnn(num_outputs, filters=64, num_layers=2, img_size=(256, 256), **kwargs):
 
     input_img = Input(img_size + (3,), name='input')
 
@@ -17,7 +17,7 @@ def simple_cnn(num_outputs, filters=64, num_layers=2, img_size=(256, 256)):
             x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
 
     # Flatten and send to dense
-    x = Flatten()(x)
+    x = GlobalAveragePooling2D()(x)
     x = Dropout(0.5)(x)
     x = Dense(num_outputs, activation="sigmoid")(x)
 

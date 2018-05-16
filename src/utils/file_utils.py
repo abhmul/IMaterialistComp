@@ -9,13 +9,13 @@ def safe_open_dir(dirpath):
     return dirpath
 
 
-def get_model_path(model_id):
-    return os.path.join(safe_open_dir("../models/"), str(model_id) + ".h5")
+def get_model_path(run_id):
+    return os.path.join(safe_open_dir("../models/"), str(run_id) + ".h5")
 
 
-def get_plot_path(model_id):
-    return os.path.join(safe_open_dir("../plots/"), str(model_id) + ".png")
+def get_plot_path(run_id):
+    return os.path.join(safe_open_dir("../plots/"), str(run_id) + ".png")
 
 
-def get_submission_path(model_id):
-    return os.path.join(safe_open_dir("../submissions/"), str(model_id) + ".csv")
+def get_submission_path(run_id):
+    return os.path.join(safe_open_dir("../submissions/"), str(run_id) + ".csv")

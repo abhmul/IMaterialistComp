@@ -23,11 +23,10 @@ class Plotter(Callback):
         self.scale = scale
         self.monitor = monitor
         self.plot_during_train = plot_during_train
-        if not self.plot_during_train:
-            raise NotImplementedError("Turning off plotting during training is not implemented yet")
         self.save_to_file = save_to_file
         self.block_on_end = block_on_end
-        plt.ion()
+        if self.plot_during_train:
+            plt.ion()
         self.fig = plt.figure()
         self.title = "{} per Epoch".format(self.monitor)
         self.xlabel = "Epoch"
@@ -39,13 +38,15 @@ class Plotter(Callback):
         self.y_train = []
         self.y_val = []
 
-    def on_train_end(self, logs={}):
-        plt.ioff()
+    def on_train_end(self, logs=None):
+        if self.plot_during_train:
+            plt.ioff()
         if self.block_on_end:
             plt.show()
         return
 
-    def on_epoch_end(self, epoch, logs={}):
+    def on_epoch_end(self, epoch, logs=None):
+        logs = {} if logs is None else logs
         # Set up the plot
         self.ax.clear()
         self.fig.suptitle(self.title)

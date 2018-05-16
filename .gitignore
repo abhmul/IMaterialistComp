@@ -103,3 +103,7 @@ ENV/
 \.idea/
 
 input/
+
+*.h5
+
+submissions/
