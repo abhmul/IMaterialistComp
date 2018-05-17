@@ -187,6 +187,8 @@ if __name__ == "__main__":
         img_size=current_run_config["img_size"])
 
     trained_model = None
+    if args.debug:
+        logging.info("Running in debug mode...")
     if args.train:
         trained_model = train(imaterialist_data, current_run_config)
     if args.test:
