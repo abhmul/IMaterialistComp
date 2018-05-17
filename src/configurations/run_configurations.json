@@ -41,7 +41,7 @@
       "shear_range": 0.1,
       "zoom_range": 0.2,
       "horizontal_flip": true,
-      "vertical_flip": false,
+      "vertical_flip": false
       }],
     "test_batch_size": 32,
     "threshold": 0.5
