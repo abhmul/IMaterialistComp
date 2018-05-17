@@ -6,7 +6,6 @@
     "validation": "use_provided",
     "img_size": [64, 64],
 
-    "path_to_train": "../input/validation",
     "augmenters": [],
     "test_batch_size": 32,
     "threshold": 0.9
@@ -19,7 +18,6 @@
     "validation": "use_provided",
     "img_size": [299, 299],
 
-    "path_to_train": "../input/validation",
     "augmenters": [],
     "test_batch_size": 32,
     "threshold": 0.9
@@ -32,7 +30,6 @@
     "validation": "use_provided",
     "img_size": [299, 299],
 
-    "path_to_train": "../input/validation",
     "augmenters": [{
       "name": "image",
       "rotation_range": 30,

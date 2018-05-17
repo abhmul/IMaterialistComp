@@ -63,8 +63,8 @@ def construct_model(model_id, run_id, img_size, **model_run_params):
     return model
 
 
-def build_augmenter(augmenter_name, **kwargs):
-    raise AUGMENTERS[augmenter_name](**kwargs)
+def build_augmenter(name, **kwargs):
+    return AUGMENTERS[name](**kwargs)
 
 
 def load_config(run_id):
