@@ -24,9 +24,12 @@ def encode_label(label_num):
 
 
 class IMaterialistData(object):
-
-    def __init__(self, path_to_train="../input/train", path_to_validation="../input/validation",
-                 path_to_test="../input/test", img_size=None, mode="rgb"):
+    def __init__(self,
+                 path_to_train="../input/train",
+                 path_to_validation="../input/validation",
+                 path_to_test="../input/test",
+                 img_size=None,
+                 mode="rgb"):
         self.path_to_train = path_to_train
         self.path_to_train_labels = path_to_train + "_labels.csv"
         self.path_to_validation = path_to_validation
@@ -61,7 +64,9 @@ class IMaterialistData(object):
         # Create the labels array
         labels = np.zeros((len(csvfile), NUM_LABELS), dtype=np.int8)
         for i, label_ids in enumerate(csvfile.labelId):
-            labels[csvfile.imageId[i] - MIN_IMG_ID, encode_label(np.array(list(map(int, label_ids.split()))))] = 1
+            labels[csvfile.imageId[i] - MIN_IMG_ID,
+                   encode_label(np.array(list(map(int,
+                                                  label_ids.split()))))] = 1
         return labels, csvfile.imageId.values
 
     def load_labeled_data(self, path_to_imgs, path_to_labels):
@@ -69,17 +74,20 @@ class IMaterialistData(object):
         y, ids2 = self.load_labels(path_to_labels)
         assert np.all(ids == ids2)
 
-        return ImageDataset(x, y=y, ids=ids, img_size=self.img_size, mode=self.mode)
+        return ImageDataset(
+            x, y=y, ids=ids, img_size=self.img_size, mode=self.mode)
 
     def load_unlabeled_data(self, path_to_imgs):
         x, ids = self.load_images(path_to_imgs)
         return ImageDataset(x, ids=ids, img_size=self.img_size, mode=self.mode)
 
     def load_train_data(self):
-        return self.load_labeled_data(self.path_to_train, self.path_to_train_labels)
+        return self.load_labeled_data(self.path_to_train,
+                                      self.path_to_train_labels)
 
     def load_validation_data(self):
-        return self.load_labeled_data(self.path_to_validation, self.path_to_validation_labels)
+        return self.load_labeled_data(self.path_to_validation,
+                                      self.path_to_validation_labels)
 
     def load_test(self):
         return self.load_unlabeled_data(self.path_to_test)
@@ -94,5 +102,8 @@ class IMaterialistData(object):
         submission_array[:, 0] = img_ids
         for i in range(num_test_samples):
             row_labels = labels[rows == i]
-            submission_array[i, 1] = " ".join(str(label + MIN_LABEL) for label in row_labels)
-        pd.DataFrame(submission_array, columns=["image_id", "label_id"]).to_csv(save_path, index=False)
+            submission_array[i, 1] = " ".join(
+                str(label + MIN_LABEL) for label in row_labels)
+        pd.DataFrame(
+            submission_array, columns=["image_id", "label_id"]).to_csv(
+                save_path, index=False)

@@ -15,7 +15,7 @@
   "transfer-test-1": {
     "model_id": "transfer-model-0",
     "batch_size": 32,
-    "epochs": 25,
+    "epochs": 1,
     "validation": "use_provided",
     "img_size": [299, 299],
 
@@ -23,5 +23,27 @@
     "augmenters": [],
     "test_batch_size": 32,
     "threshold": 0.9
+  },
+
+  "transfer-test-2": {
+    "model_id": "transfer-model-0",
+    "batch_size": 32,
+    "epochs": 1,
+    "validation": "use_provided",
+    "img_size": [299, 299],
+
+    "path_to_train": "../input/validation",
+    "augmenters": [{
+      "name": "image",
+      "rotation_range": 30,
+      "width_shift_range": 0.2,
+      "height_shift_range": 0.2,
+      "shear_range": 0.1,
+      "zoom_range": 0.2,
+      "horizontal_flip": true,
+      "vertical_flip": false,
+      }],
+    "test_batch_size": 32,
+    "threshold": 0.5
   }
 }

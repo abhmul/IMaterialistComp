@@ -107,3 +107,5 @@ input/
 *.h5
 
 submissions/
+
+*.gz

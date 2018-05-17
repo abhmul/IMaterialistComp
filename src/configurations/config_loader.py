@@ -9,7 +9,8 @@ RUN_ID : {
         -- The following are not implemented --
         "split": This will combine the provided and split the entire dataset
         "kfold": This will combine the provided and run kfold
-    "img_size": A list of 2 elements: the image height and width; set to null for no resize
+    "img_size": A list of 2 elements: the image height and width; set to null
+        for no resize
 
     -- The following are optional arguments --
     path_to_train: path to where training data is stored
@@ -18,7 +19,8 @@ RUN_ID : {
     augmenters: A list of json objects. Each object is comprised of:
         [{augmenter_name, **arguments for augmenter}, ... ]
         Defaults to no augmenters
-    test_batch_size: The batch size to use during testing. Defaults to batch_size
+    test_batch_size: The batch size to use during testing. Defaults to
+        batch_size
     threshold: The threshold to use during prediction. Options are:
         float: This float value will be used for all classes
         -- The following are not implemented --
@@ -35,12 +37,15 @@ MODEL_ID : {
 
 import json
 from functools import partial
+from pyjet.augmenters import ImageDataAugmenter
 from .models import load_model
 
 with open("configurations/run_configurations.json", "r") as config_json:
     RUN_CONFIGS = json.load(config_json)
 with open("configurations/model_configurations.json", "r") as config_json:
     MODEL_CONFIGS = json.load(config_json)
+
+AUGMENTERS = {"image": ImageDataAugmenter}
 
 
 def construct_model(model_id, run_id, img_size, **model_run_params):
@@ -51,14 +56,15 @@ def construct_model(model_id, run_id, img_size, **model_run_params):
     model.run_id = run_id
     model.img_size = img_size
     for attribute in model_run_params:
-        assert not hasattr(model, attribute), "Keras model already has attribute %s" % attribute
+        assert not hasattr(model, attribute), "Keras model already has "
+        "attribute %s" % attribute
         setattr(model, attribute, model_run_params[attribute])
     model.summary()
     return model
 
 
 def build_augmenter(augmenter_name, **kwargs):
-    raise NotImplementedError()
+    raise AUGMENTERS[augmenter_name](**kwargs)
 
 
 def load_config(run_id):
@@ -77,10 +83,9 @@ def load_config(run_id):
 
     model_id = run_config["model_id"]
     img_size = run_config["img_size"]
-    run_config["model_func"] = partial(construct_model, model_id, run_id, img_size)
-    run_config["augmenters"] = [build_augmenter(**augmenter_args) for augmenter_args in run_config["augmenters"]]
+    run_config["model_func"] = partial(construct_model, model_id, run_id,
+                                       img_size)
+    run_config["augmenters"] = [build_augmenter(**augmenter_args) for
+                                augmenter_args in run_config["augmenters"]]
 
     return run_config
-
-
-
