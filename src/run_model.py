@@ -1,12 +1,13 @@
 import logging
 import argparse
 import numpy as np
+from sklearn.metrics import f1_score, accuracy_score
 
 from pyjet.data import ImageDataset
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint
 
-from callbacks import Plotter
+from callbacks import Plotter, Validator
 from configurations import load_config
 import utils
 
@@ -52,6 +53,10 @@ def train_model(model: Model,
                 load_model=False,
                 **kwargs):
     logging.info("Training model with run id %s" % model.run_id)
+    logging.info("Using: \n\tbatch_size: {batch_size} \
+        \n\tepochs: {epochs} \
+        \n\tplot: {plot} \
+        \n\tload_model: {load_model}".format(**locals()))
 
     if load_model:
         logging.info("Reloading model from weights")
@@ -59,7 +64,7 @@ def train_model(model: Model,
 
     traingen = train_dataset.flow(
         batch_size=batch_size, shuffle=True, seed=utils.get_random_seed())
-    valgen = val_dataset.flow(batch_size=batch_size, shuffle=False)
+    # valgen = val_dataset.flow(batch_size=batch_size, shuffle=False)
 
     # Add the augmenters to the training generator
     for augmenter in augmenters:
@@ -67,19 +72,25 @@ def train_model(model: Model,
 
     # Create the callbacks
     callbacks = [
+        Validator(
+            val_dataset,
+            batch_size,
+            acc=accuracy_score,
+            f1=f1_score),
         ModelCheckpoint(
             utils.get_model_path(model.run_id),
-            monitor="val_loss",
+            monitor="val_f1",
             save_best_only=True,
-            save_weights_only=True),
+            save_weights_only=True,
+            mode="max"),
         ModelCheckpoint(
             utils.get_model_path(model.run_id + "_acc"),
             monitor="val_acc",
             save_best_only=True,
             save_weights_only=True),
         Plotter(
-            monitor="loss",
-            scale="log",
+            monitor="f1",
+            scale="linear",
             plot_during_train=plot,
             save_to_file=utils.get_plot_path(model.run_id),
             block_on_end=False),
@@ -98,8 +109,9 @@ def train_model(model: Model,
         epochs=epochs,
         verbose=1,
         callbacks=callbacks,
-        validation_data=valgen,
-        validation_steps=5 if args.debug else valgen.steps_per_epoch)
+        # validation_data=valgen,
+        # validation_steps=5 if args.debug else valgen.steps_per_epoch
+    )
 
     # Log the output
     logs = history.history
@@ -120,11 +132,12 @@ def train_model(model: Model,
 def test_model(model: Model,
                test_dataset: ImageDataset,
                augmenters=tuple(),
-               batch_size=32,
+               test_batch_size=32,
                **kwargs):
     logging.info("Testing model with id %s" % model.run_id)
+    logging.info("Using: batch_size: {test_batch_size}".format(**locals()))
 
-    testgen = test_dataset.flow(batch_size=batch_size, shuffle=False)
+    testgen = test_dataset.flow(batch_size=test_batch_size, shuffle=False)
 
     # Add any test augmentation
     for augmenter in augmenters:
@@ -137,8 +150,8 @@ def test_model(model: Model,
         verbose=1)
 
     if args.debug:
-        debug_predictions = np.zeros(len(test_dataset), utils.NUM_LABELS)
-        debug_predictions[:5] = predictions
+        debug_predictions = np.zeros((len(test_dataset), utils.NUM_LABELS))
+        debug_predictions[:len(predictions)] = predictions
         predictions = debug_predictions
 
     return predictions

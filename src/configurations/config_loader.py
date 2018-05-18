@@ -80,6 +80,7 @@ def load_config(run_id):
     run_config.setdefault("test_batch_size", run_config["batch_size"])
     run_config.setdefault("threshold", 0.5)
     run_config.setdefault("augmenters", [])
+    run_config.setdefault("num_test_augment", 1)
 
     model_id = run_config["model_id"]
     img_size = run_config["img_size"]
