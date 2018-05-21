@@ -48,18 +48,17 @@ with open("configurations/model_configurations.json", "r") as config_json:
 AUGMENTERS = {"image": ImageDataAugmenter}
 
 
-def construct_model(model_id, run_id, img_size, **model_run_params):
+def construct_model(model_id, run_id, **model_run_params):
     # Constructs the model and gives it relevant attributes
     model_config = MODEL_CONFIGS[model_id]
-    model = load_model(**model_config, img_size=img_size, **model_run_params)
+    model = load_model(**model_config, **model_run_params)
     model.model_id = model_id
     model.run_id = run_id
-    model.img_size = img_size
     for attribute in model_run_params:
         assert not hasattr(model, attribute), "Keras model already has "
         "attribute %s" % attribute
         setattr(model, attribute, model_run_params[attribute])
-    model.summary()
+    # model.summary()
     return model
 
 
@@ -82,10 +81,16 @@ def load_config(run_id):
     run_config.setdefault("augmenters", [])
     run_config.setdefault("num_test_augment", 1)
 
+    run_config.setdefault("fine_tune", False)
+
     model_id = run_config["model_id"]
     img_size = run_config["img_size"]
-    run_config["model_func"] = partial(construct_model, model_id, run_id,
-                                       img_size)
+    fine_tune = run_config["fine_tune"]
+    run_config["model_func"] = partial(construct_model,
+                                       model_id=model_id,
+                                       run_id=run_id,
+                                       img_size=img_size,
+                                       fine_tune=fine_tune)
     run_config["augmenters"] = [build_augmenter(**augmenter_args) for
                                 augmenter_args in run_config["augmenters"]]
 

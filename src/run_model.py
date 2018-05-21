@@ -1,13 +1,13 @@
 import logging
 import argparse
 import numpy as np
-from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics import f1_score
 
 from pyjet.data import ImageDataset
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint
 
-from callbacks import Plotter, Validator
+from callbacks import Plotter
 from configurations import load_config
 import utils
 
@@ -27,6 +27,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("run_id", help="ID of run config to use")
 parser.add_argument(
     "--train", action="store_true", help="Whether or not to train the model.")
+parser.add_argument(
+    "--cross_validate",
+    action="store_true",
+    help="Whether or not to train the model.")
 parser.add_argument(
     "--test", action="store_true", help="Whether or not to test the model.")
 parser.add_argument(
@@ -49,6 +53,7 @@ def train_model(model: Model,
                 augmenters=tuple(),
                 epochs=100,
                 batch_size=32,
+                epoch_size=10000,
                 plot=False,
                 load_model=False,
                 **kwargs):
@@ -56,15 +61,32 @@ def train_model(model: Model,
     logging.info("Using: \n\tbatch_size: {batch_size} \
         \n\tepochs: {epochs} \
         \n\tplot: {plot} \
-        \n\tload_model: {load_model}".format(**locals()))
+        \n\tload_model: {load_model} \
+        \n\tepoch_size: {epoch_size}".format(**locals()))
 
     if load_model:
         logging.info("Reloading model from weights")
         model.load_weights(utils.get_model_path(model.run_id))
+    if model.fine_tune:
+        old_run_id = model.run_id[:-len("-fine-tune")]
+        logging.info(
+            "Fine tuning model with weights from {}".format(old_run_id))
+        model.load_weights(utils.get_model_path(old_run_id))
 
+    steps = epoch_size // batch_size
+    val_steps = epoch_size // 10 // batch_size
     traingen = train_dataset.flow(
-        batch_size=batch_size, shuffle=True, seed=utils.get_random_seed())
-    # valgen = val_dataset.flow(batch_size=batch_size, shuffle=False)
+        batch_size=batch_size,
+        steps_per_epoch=steps,
+        shuffle=True,
+        replace=True,
+        seed=utils.get_random_seed())
+    valgen = val_dataset.flow(
+        batch_size=batch_size,
+        steps_per_epoch=val_steps,
+        shuffle=True,
+        replace=True,
+        seed=utils.get_random_seed())
 
     # Add the augmenters to the training generator
     for augmenter in augmenters:
@@ -72,24 +94,20 @@ def train_model(model: Model,
 
     # Create the callbacks
     callbacks = [
-        Validator(
-            val_dataset,
-            batch_size,
-            acc=accuracy_score,
-            f1=f1_score),
+        # Validator(val_dataset, batch_size, args.debug, acc=accuracy_score, f1=f1_score),
         ModelCheckpoint(
             utils.get_model_path(model.run_id),
-            monitor="val_f1",
-            save_best_only=True,
+            monitor="val_loss",
+            save_best_only=False,
             save_weights_only=True,
             mode="max"),
-        ModelCheckpoint(
-            utils.get_model_path(model.run_id + "_acc"),
-            monitor="val_acc",
-            save_best_only=True,
-            save_weights_only=True),
+        # ModelCheckpoint(
+        #     utils.get_model_path(model.run_id + "_acc"),
+        #     monitor="val_acc",
+        #     save_best_only=True,
+        #     save_weights_only=True),
         Plotter(
-            monitor="f1",
+            monitor="loss",
             scale="linear",
             plot_during_train=plot,
             save_to_file=utils.get_plot_path(model.run_id),
@@ -109,9 +127,8 @@ def train_model(model: Model,
         epochs=epochs,
         verbose=1,
         callbacks=callbacks,
-        # validation_data=valgen,
-        # validation_steps=5 if args.debug else valgen.steps_per_epoch
-    )
+        validation_data=valgen,
+        validation_steps=5 if args.debug else valgen.steps_per_epoch)
 
     # Log the output
     logs = history.history
@@ -119,14 +136,75 @@ def train_model(model: Model,
     checkpoint = min(epochs, key=lambda i: logs["val_loss"][i])
     best_val_loss, best_val_acc = logs["val_loss"][checkpoint], logs[
         "val_acc"][checkpoint]
-    logging.info("LOSS CHECKPOINTED -- Loss: {} -- Accuracy: {}".format(
+    logging.info("LOSS CHECKPOINTED -- F1: {} -- Accuracy: {}".format(
         best_val_loss, best_val_acc))
 
     checkpoint = max(epochs, key=lambda i: logs["val_acc"][i])
     best_val_loss, best_val_acc = logs["val_loss"][checkpoint], logs[
         "val_acc"][checkpoint]
-    logging.info("ACC CHECKPOINTED -- Loss: {} -- Accuracy: {}".format(
+    logging.info("ACC CHECKPOINTED -- F1: {} -- Accuracy: {}".format(
         best_val_loss, best_val_acc))
+
+
+def cross_validate_predictions(labels, predictions):
+    assert labels.shape == predictions.shape
+
+    threshold_search = np.linspace(0., 1., num=50)[1:-1]
+    best_thresholds = {"f1": None}
+    metrics = {"f1": f1_score}
+
+    for metric_name, metric in metrics.items():
+        # Apply the metric to each label and calculate the best threshold
+        thresholds = np.zeros((labels.shape[1]))
+        best_scores = thresholds - float("inf")
+        # Try out all the different thresholds
+        for t in threshold_search:
+            class_preds = predictions > t
+            if np.sum(class_preds) == 0:
+                continue
+            scores = np.array([
+                metric(labels[:, i], class_preds[:, i])
+                for i in range(labels.shape[1])
+            ])
+            is_best = (scores >= best_scores)
+            thresholds[is_best] = t
+            best_scores[is_best] = scores[is_best]
+        # Store the best thresholds
+        best_thresholds[metric_name] = thresholds
+
+        # Get the average best score for logging
+        best_score = np.mean(best_scores)
+        print("Validation {metric_name}: {score}".format(
+            metric_name=metric_name, score=best_score))
+        print("\tThresholds: {}".format(best_thresholds[metric_name]))
+
+    return best_thresholds
+
+
+def cross_validate_model(model: Model,
+                         val_dataset: ImageDataset,
+                         test_batch_size=32,
+                         **kwargs):
+    logging.info("Validationg model with id %s" % model.run_id)
+    logging.info("Using: batch_size: {test_batch_size}".format(**locals()))
+
+    valgen = val_dataset.flow(batch_size=test_batch_size, shuffle=False)
+
+    predictions = model.predict_generator(
+        valgen, steps=5 if args.debug else valgen.steps_per_epoch, verbose=1)
+
+    if args.debug:
+        debug_predictions = np.zeros((len(val_dataset), utils.NUM_LABELS))
+        debug_predictions[:len(predictions)] = predictions
+        predictions = debug_predictions
+
+    best_thresholds = cross_validate_predictions(val_dataset.y, predictions)
+    print("Best Thresholds:")
+    print(best_thresholds)
+    # Save the results
+    np.savez(utils.get_cv_path(model.run_id), **best_thresholds)
+
+    return best_thresholds
 
 
 def test_model(model: Model,
@@ -145,9 +223,7 @@ def test_model(model: Model,
         testgen = augmenter(testgen)
 
     predictions = model.predict_generator(
-        testgen,
-        steps=5 if args.debug else testgen.steps_per_epoch,
-        verbose=1)
+        testgen, steps=5 if args.debug else testgen.steps_per_epoch, verbose=1)
 
     if args.debug:
         debug_predictions = np.zeros((len(test_dataset), utils.NUM_LABELS))
@@ -171,6 +247,17 @@ def train(data, run_config):
     return model
 
 
+def cross_validate(data: utils.IMaterialistData, run_config, model=None):
+
+    validation_data = data.load_validation_data()
+    # Create the model
+    if model is None:
+        model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
+    model.load_weights(utils.get_model_path(model.run_id))
+
+    return cross_validate_model(model, validation_data, **run_config)
+
+
 def test(data: utils.IMaterialistData, run_config, model=None):
     # Load the data
     test_data = data.load_test()
@@ -183,11 +270,17 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     for _ in range(run_config["num_test_augment"]):
         predictions += test_model(model, test_data, **run_config)
     predictions /= run_config["num_test_augment"]
+    # Load the thresholds if we need to
+    if run_config["threshold"] == "cv":
+        thresholds = np.load(utils.get_cv_path(model.run_id))["f1"]
+    else:
+        thresholds = run_config["threshold"]
+
     data.save_submission(
         utils.get_submission_path(model.run_id),
         predictions,
         test_data.ids,
-        thresholds=run_config["threshold"])
+        thresholds=thresholds)
 
 
 if __name__ == "__main__":
@@ -204,5 +297,9 @@ if __name__ == "__main__":
         logging.info("Running in debug mode...")
     if args.train:
         trained_model = train(imaterialist_data, current_run_config)
+    if current_run_config["threshold"] == "cv" and args.cross_validate:
+        cross_validate(imaterialist_data, current_run_config, trained_model)
+        # TODO add the model loading function
+        # cross_validate_model(model, val_dataset, test_batch_size)
     if args.test:
         test(imaterialist_data, current_run_config, model=trained_model)

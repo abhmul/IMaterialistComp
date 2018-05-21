@@ -19,3 +19,7 @@ def get_plot_path(run_id):
 
 def get_submission_path(run_id):
     return os.path.join(safe_open_dir("../submissions/"), str(run_id) + ".csv")
+
+
+def get_cv_path(run_id):
+    return os.path.join(safe_open_dir("../cv/"), str(run_id) + ".csv")

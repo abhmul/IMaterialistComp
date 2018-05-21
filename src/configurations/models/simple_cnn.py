@@ -1,5 +1,6 @@
 from keras.models import Model
 from keras.layers import Conv2D, BatchNormalization, MaxPooling2D, Input, Activation, GlobalAveragePooling2D, Dense, Dropout
+from .losses import f1_loss
 
 
 def simple_cnn(num_outputs, filters=64, num_layers=2, img_size=(256, 256), **kwargs):
@@ -24,6 +25,7 @@ def simple_cnn(num_outputs, filters=64, num_layers=2, img_size=(256, 256), **kwa
     model = Model(inputs=input_img, outputs=x)
 
     # compile and return
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=["accuracy"])
+    model.compile(optimizer='adam', loss=f1_loss, metrics=["accuracy"])
+    print("Model is using losses %s" % model.loss_functions[0].__name__)
 
     return model
