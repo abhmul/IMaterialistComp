@@ -1,6 +1,6 @@
 import os
+import glob
 import logging
-
 
 def safe_open_dir(dirpath):
     if not os.path.isdir(dirpath):
@@ -23,3 +23,14 @@ def get_submission_path(run_id):
 
 def get_cv_path(run_id):
     return os.path.join(safe_open_dir("../cv/"), str(run_id) + ".csv")
+
+def safe_get_weights(model):  # keras.models.Model
+    logging.info("Func safe_get_weights --- Entry Point --- Trace")
+    dir = os.path.expanduser('~/.keras/models/*')
+    file_list = glob.glob(dir)  # guarenteed
+    if file_list:
+        file = max(file_list, key=os.path.getctime)
+        # if weights are not in ../models/ then the most recently downloaded weights from keras is assumed to be it
+        if not os.path.isfile(get_model_path(model.run_id)):
+            logging.info("Func safe_get_weights --- Moving most recently downloaded .h5 into ../models/ --- Trace")
+            os.rename(file, get_model_path(model.run_id))

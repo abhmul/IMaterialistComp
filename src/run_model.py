@@ -66,12 +66,12 @@ def train_model(model: Model,
 
     if load_model:
         logging.info("Reloading model from weights")
-        model.load_weights(utils.get_model_path(model.run_id))
+        model.load_weights(utils.get_model_path(model.run_id), by_name=True)
     if model.fine_tune:
         old_run_id = model.run_id[:-len("-fine-tune")]
         logging.info(
             "Fine tuning model with weights from {}".format(old_run_id))
-        model.load_weights(utils.get_model_path(old_run_id))
+        model.load_weights(utils.get_model_path(old_run_id), by_name=True)
 
     steps = epoch_size // batch_size
     val_steps = epoch_size // 10 // batch_size
@@ -148,6 +148,7 @@ def train_model(model: Model,
 
 def cross_validate_predictions(labels, predictions):
     assert labels.shape == predictions.shape
+    print("Function cross_validate_predictions() --- Entry Point --- labels.shape = predictions.shape = {}".format(labels.shape))
 
     threshold_search = np.linspace(0., 1., num=50)[1:-1]
     best_thresholds = {"f1": None}
@@ -167,6 +168,9 @@ def cross_validate_predictions(labels, predictions):
                 for i in range(labels.shape[1])
             ])
             is_best = (scores >= best_scores)
+            if args.debug:
+                logging.info("CALCULATING threshold = {}".format(t))
+                logging.info("CALCULATING number of threshold improvements = {}".format(np.sum(is_best)))
             thresholds[is_best] = t
             best_scores[is_best] = scores[is_best]
         # Store the best thresholds
@@ -242,6 +246,8 @@ def train(data, run_config):
         raise NotImplementedError(run_config["validation"])
     # Create the model
     model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
+    utils.safe_get_weights(model);
+
     # Train the model
     train_model(model, train_data, val_data, **run_config)
     return model
@@ -253,7 +259,8 @@ def cross_validate(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    model.load_weights(utils.get_model_path(model.run_id))
+    utils.safe_get_weights(model)
+    model.load_weights(utils.get_model_path(model.run_id), by_name=True)
 
     return cross_validate_model(model, validation_data, **run_config)
 
@@ -264,11 +271,14 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    model.load_weights(utils.get_model_path(model.run_id))
+    utils.safe_get_weights(model)
+    model.load_weights(utils.get_model_path(model.run_id), by_name=True)
     # Test the model w/ augmentation
     predictions = np.zeros((len(test_data), utils.NUM_LABELS))
     for _ in range(run_config["num_test_augment"]):
         predictions += test_model(model, test_data, **run_config)
+        if args.debug:
+            logging.log
     predictions /= run_config["num_test_augment"]
     # Load the thresholds if we need to
     if run_config["threshold"] == "cv":
