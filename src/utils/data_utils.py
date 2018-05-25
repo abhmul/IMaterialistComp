@@ -40,11 +40,23 @@ class IMaterialistData(object):
         self.mode = mode
         self.label_encoder = MultiLabelBinarizer()
 
+        # Fit the label encoder
+        big_label_csv = pd.concat([
+            pd.read_csv(self.path_to_train_labels),
+            pd.read_csv(self.path_to_validation_labels)
+        ])
+        self.label_encoder.fit(
+            [labels.split(" ") for labels in big_label_csv.labelId]
+        )
+        logging.info("Found %s labels in data."
+                     % len(self.label_encoder.classes_))
+        assert len(self.label_encoder.classes_) == NUM_LABELS
+
     @staticmethod
     def load_images(path_to_imgs):
         img_fnames = np.array(sorted(get_data_paths(path_to_imgs),
                               key=get_img_id))
-        img_ids = np.array(map(get_img_id, img_fnames), dtype=int)
+        img_ids = np.array(list(map(get_img_id, img_fnames)), dtype=int)
         logging.info("Found {} images in {}".format(len(img_ids),
                                                     path_to_imgs))
 
@@ -61,7 +73,9 @@ class IMaterialistData(object):
         logging.info("Creating labels stored in %s" % path_to_labels)
         csvfile = pd.read_csv(path_to_labels)
 
-        labels = self.label_encoder.fit_transform(csvfile.labelId)
+        labels = self.label_encoder.transform(
+            [labels.split(" ") for labels in csvfile.labelId]
+        )
 
         # Create the labels array
         return labels, csvfile.imageId.values

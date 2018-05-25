@@ -83,23 +83,23 @@
 
   "inception-resnet-augment": {
     "model_id": "transfer-model-0",
-    "batch_size": 64,
-    "epochs": 15,
+    "batch_size": 32,
+    "epochs": 100,
     "epoch_size": 10000,
     "validation": "use_provided",
     "img_size": [299, 299],
 
     "augmenters": [{
       "name": "image",
-      "rotation_range": 5,
-      "width_shift_range": 0.05,
-      "height_shift_range": 0.05,
-      "shear_range": 0.0,
-      "zoom_range": 0.05,
-      "horizontal_flip": false,
-      "vertical_flip": false
+      "rotation_range": 15,
+      "width_shift_range": 0.1,
+      "height_shift_range": 0.1,
+      "shear_range": 0.05,
+      "zoom_range": 0.1,
+      "horizontal_flip": true,
+      "vertical_flip": true
       }],
-    "test_batch_size": 128,
+    "test_batch_size": 32,
     "num_test_augment": 5,
     "threshold": "cv"
   },
@@ -107,20 +107,67 @@
   "inception-resnet-augment-fine-tune": {
     "model_id": "transfer-model-0",
     "batch_size": 32,
-    "epochs": 10,
+    "epochs": 100,
+    "epoch_size": 10000,
     "fine_tune": true,
     "validation": "use_provided",
     "img_size": [299, 299],
 
     "augmenters": [{
       "name": "image",
-      "rotation_range": 5,
-      "width_shift_range": 0.05,
-      "height_shift_range": 0.05,
-      "shear_range": 0.0,
-      "zoom_range": 0.05,
-      "horizontal_flip": false,
-      "vertical_flip": false
+      "rotation_range": 15,
+      "width_shift_range": 0.1,
+      "height_shift_range": 0.1,
+      "shear_range": 0.05,
+      "zoom_range": 0.1,
+      "horizontal_flip": true,
+      "vertical_flip": true
+      }],
+    "test_batch_size": 32,
+    "num_test_augment": 5,
+    "threshold": "cv"
+  },
+
+  "densenet": {
+    "model_id": "transfer-model-1",
+    "batch_size": 32,
+    "epochs": 15,
+    "epoch_size": 10000,
+    "validation": "use_provided",
+    "img_size": [224, 224],
+
+    "augmenters": [{
+      "name": "image",
+      "rotation_range": 15,
+      "width_shift_range": 0.1,
+      "height_shift_range": 0.1,
+      "shear_range": 0.05,
+      "zoom_range": 0.1,
+      "horizontal_flip": true,
+      "vertical_flip": true
+      }],
+    "test_batch_size": 32,
+    "num_test_augment": 1,
+    "threshold": "cv"
+  },
+
+  "xception": {
+    "model_id": "transfer-model-2",
+    "batch_size": 32,
+    "epochs": 100,
+    "epoch_size": 10000,
+    "validation": "use_provided",
+    "img_size": [299, 299],
+
+    "augmenters": [{
+      "name": "image",
+      "rotation_range": 15,
+      "width_shift_range": 0.1,
+      "height_shift_range": 0.1,
+      "shear_range": 0.05,
+      "zoom_range": 0.1,
+      "horizontal_flip": true,
+      "vertical_flip": true
       }],
     "test_batch_size": 128,
     "num_test_augment": 5,

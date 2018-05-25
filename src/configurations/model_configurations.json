@@ -7,5 +7,16 @@
     "model_name": "transfer_model",
     "base_model": "inception-resnet-v2",
     "mlp_units": 512
+  },
+
+  "transfer-model-1": {
+    "model_name": "transfer_model",
+    "base_model": "densenet-121",
+    "trainable": true
+  },
+
+  "transfer-model-2": {
+    "model_name": "transfer_model",
+    "base_model": "xception"
   }
 }

@@ -94,18 +94,18 @@ def train_model(model: Model,
 
     # Create the callbacks
     callbacks = [
-        # Validator(val_dataset, batch_size, args.debug, acc=accuracy_score, f1=f1_score),
         ModelCheckpoint(
             utils.get_model_path(model.run_id),
             monitor="val_loss",
             save_best_only=False,
             save_weights_only=True,
-            mode="max"),
-        # ModelCheckpoint(
-        #     utils.get_model_path(model.run_id + "_acc"),
-        #     monitor="val_acc",
-        #     save_best_only=True,
-        #     save_weights_only=True),
+            mode="min"),
+        ModelCheckpoint(
+            utils.get_model_path(model.run_id + "_f1"),
+            monitor="val_f1_loss",
+            save_best_only=True,
+            save_weights_only=True,
+            mode="min"),
         Plotter(
             monitor="loss",
             scale="linear",
@@ -113,10 +113,10 @@ def train_model(model: Model,
             save_to_file=utils.get_plot_path(model.run_id),
             block_on_end=False),
         Plotter(
-            monitor="acc",
+            monitor="f1_loss",
             scale="linear",
             plot_during_train=plot,
-            save_to_file=utils.get_plot_path(model.run_id + "_acc"),
+            save_to_file=utils.get_plot_path(model.run_id + "_f1"),
             block_on_end=False)
     ]
 
@@ -134,16 +134,16 @@ def train_model(model: Model,
     logs = history.history
     epochs = range(len(logs["val_loss"]))
     checkpoint = min(epochs, key=lambda i: logs["val_loss"][i])
-    best_val_loss, best_val_acc = logs["val_loss"][checkpoint], logs[
-        "val_acc"][checkpoint]
-    logging.info("LOSS CHECKPOINTED -- F1: {} -- Accuracy: {}".format(
-        best_val_loss, best_val_acc))
+    best_val_loss, best_val_f1 = logs["val_loss"][checkpoint], logs[
+        "val_f1_loss"][checkpoint]
+    logging.info("LOSS CHECKPOINTED -- Loss: {} -- F1: {}".format(
+        best_val_loss, best_val_f1))
 
-    checkpoint = max(epochs, key=lambda i: logs["val_acc"][i])
-    best_val_loss, best_val_acc = logs["val_loss"][checkpoint], logs[
-        "val_acc"][checkpoint]
-    logging.info("ACC CHECKPOINTED -- F1: {} -- Accuracy: {}".format(
-        best_val_loss, best_val_acc))
+    checkpoint = min(epochs, key=lambda i: logs["val_f1_loss"][i])
+    best_val_loss, best_val_f1 = logs["val_loss"][checkpoint], logs[
+        "val_f1_loss"][checkpoint]
+    logging.info("ACC CHECKPOINTED -- Loss: {} -- F1: {}".format(
+        best_val_loss, best_val_f1))
 
 
 def cross_validate_predictions(labels, predictions):
