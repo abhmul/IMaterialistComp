@@ -66,12 +66,12 @@ def train_model(model: Model,
 
     if load_model:
         logging.info("Reloading model from weights")
-        model.load_weights(utils.get_model_path(model.run_id), by_name=True)
+        model.load_weights(utils.get_model_path(model.run_id))
     if model.fine_tune:
         old_run_id = model.run_id[:-len("-fine-tune")]
         logging.info(
             "Fine tuning model with weights from {}".format(old_run_id))
-        model.load_weights(utils.get_model_path(old_run_id), by_name=True)
+        model.load_weights(utils.get_model_path(old_run_id))
 
     steps = epoch_size // batch_size
     val_steps = epoch_size // 10 // batch_size
@@ -99,13 +99,15 @@ def train_model(model: Model,
             monitor="val_loss",
             save_best_only=False,
             save_weights_only=True,
-            mode="min"),
+            mode="min",
+            verbose=1),
         ModelCheckpoint(
             utils.get_model_path(model.run_id + "_f1"),
             monitor="val_f1_loss",
             save_best_only=True,
             save_weights_only=True,
-            mode="min"),
+            mode="min",
+            verbose=1),
         Plotter(
             monitor="loss",
             scale="linear",
@@ -259,7 +261,7 @@ def cross_validate(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    model.load_weights(utils.get_model_path(model.run_id), by_name=True)
+    model.load_weights(utils.get_model_path(model.run_id))
 
     return cross_validate_model(model, validation_data, **run_config)
 
@@ -270,7 +272,7 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    model.load_weights(utils.get_model_path(model.run_id), by_name=True)
+    model.load_weights(utils.get_model_path(model.run_id))
     # Test the model w/ augmentation
     predictions = np.zeros((len(test_data), utils.NUM_LABELS))
     for _ in range(run_config["num_test_augment"]):

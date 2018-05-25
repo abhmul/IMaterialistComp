@@ -21,7 +21,7 @@ imagenet_dict = {
     "densenet-121": DenseNet121,
     "xception": Xception
 }
-finetune_dict = {"inception-resnet-v2": "conv2d_169"}
+finetune_dict = {"inception-resnet-v2": "conv2d_161"}
 pretrained_dict = {"inception-resnet-v2": "inception_resnet_v2",
                    "densenet-121": "densenet121",
                    "xception": "xception"}
@@ -133,8 +133,8 @@ def transfer_model_fine_tune(num_outputs,
     # compile the model (done *after* setting layers to non-trainable)
     model.compile(
         optimizer=SGD(lr=0.0001, momentum=0.9, nesterov=True),
-        loss=f1_bce,
-        metrics=["accuracy"])
+        loss="binary_crossentropy",
+        metrics=["accuracy", f1_loss])
     logging.info("Model is using losses %s" % model.loss_functions[0].__name__)
 
     return model

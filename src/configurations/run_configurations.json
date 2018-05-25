@@ -84,7 +84,7 @@
   "inception-resnet-augment": {
     "model_id": "transfer-model-0",
     "batch_size": 32,
-    "epochs": 100,
+    "epochs": 25,
     "epoch_size": 10000,
     "validation": "use_provided",
     "img_size": [299, 299],
@@ -107,7 +107,7 @@
   "inception-resnet-augment-fine-tune": {
     "model_id": "transfer-model-0",
     "batch_size": 32,
-    "epochs": 100,
+    "epochs": 50,
     "epoch_size": 10000,
     "fine_tune": true,
     "validation": "use_provided",
