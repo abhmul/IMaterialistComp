@@ -246,7 +246,6 @@ def train(data, run_config):
         raise NotImplementedError(run_config["validation"])
     # Create the model
     model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    utils.safe_get_weights(model);
 
     # Train the model
     train_model(model, train_data, val_data, **run_config)
@@ -259,7 +258,6 @@ def cross_validate(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    utils.safe_get_weights(model)
     model.load_weights(utils.get_model_path(model.run_id), by_name=True)
 
     return cross_validate_model(model, validation_data, **run_config)
@@ -271,14 +269,11 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    utils.safe_get_weights(model)
     model.load_weights(utils.get_model_path(model.run_id), by_name=True)
     # Test the model w/ augmentation
     predictions = np.zeros((len(test_data), utils.NUM_LABELS))
     for _ in range(run_config["num_test_augment"]):
         predictions += test_model(model, test_data, **run_config)
-        if args.debug:
-            logging.log
     predictions /= run_config["num_test_augment"]
     # Load the thresholds if we need to
     if run_config["threshold"] == "cv":

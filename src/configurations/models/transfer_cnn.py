@@ -1,3 +1,5 @@
+import os
+import glob
 import numpy as np
 import logging
 from keras.applications.inception_resnet_v2 import InceptionResNetV2
@@ -17,6 +19,30 @@ imagenet_dict = {
     "densenet-201": DenseNet201
 }
 finetune_dict = {"inception-resnet-v2": "conv2d_169"}
+
+
+def safe_load_pretrained_weights(model: Model, base_model_name: str):
+    # Fix the base model name
+    base_model_name = base_model_name.replace("-", "_")
+    # Get all the saved models in the keras models dir
+    keras_models_dir = os.path.expanduser('~/.keras/models/*')
+    pretrained_models_list = glob.glob(keras_models_dir)
+    # Filter for models with the same base model name
+    pretrained_models_list = [
+        model_name for model_name in pretrained_models_list
+        if base_model_name in model_name
+    ]
+    # Check if this file exists
+    if pretrained_models_list:
+        # Pick the latest one
+        pretrained_model = max(pretrained_models_list, key=os.path.getctime)
+        logging.info(
+            "Loading pretrained weights from {}".format(pretrained_model))
+        model.load_weights(pretrained_model, by_name=True)
+        return
+    # Otherwise we couldn't find the weights
+    raise OSError(
+        "Could not find pretrained weights for {}".format(base_model_name))
 
 
 def create_transfer_model(num_outputs,
@@ -49,12 +75,13 @@ def transfer_model_no_fine_tune(num_outputs,
                                 base_model="inception-resnet-v2",
                                 mlp_units=1024,
                                 **kwargs):
-
-    model, base_model = create_transfer_model(
+    logging.info(
+        "Constructing a non-fine tune model based on {}".format(base_model))
+    model, base_model_net = create_transfer_model(
         num_outputs, base_model=base_model, mlp_units=mlp_units, **kwargs)
     # first: train only the top layers (which were randomly initialized)
     # i.e. freeze all convolutional imagenet layers
-    for layer in base_model.layers:
+    for layer in base_model_net.layers:
         layer.trainable = False
 
     # compile the model (done *after* setting layers to non-trainable)
@@ -62,7 +89,10 @@ def transfer_model_no_fine_tune(num_outputs,
         optimizer='adam',
         loss='binary_crossentropy',
         metrics=["accuracy", f1_loss])
-    print("Model is using losses %s" % model.loss_functions[0].__name__)
+    logging.info("Model is using losses %s" % model.loss_functions[0].__name__)
+
+    logging.info("Grabbing weights from pretrained model")
+    safe_load_pretrained_weights(model, base_model)
 
     return model
 
@@ -72,6 +102,8 @@ def transfer_model_fine_tune(num_outputs,
                              mlp_units=1024,
                              **kwargs):
 
+    logging.info(
+        "Constructing a fine tune model based on {}".format(base_model))
     model, base_model_net = create_transfer_model(
         num_outputs, base_model=base_model, mlp_units=mlp_units, **kwargs)
     # first: train only the top layers (which were randomly initialized)
@@ -82,7 +114,7 @@ def transfer_model_fine_tune(num_outputs,
     logging.info("First trainable layer is %s / %s" %
                  (first_trainable_index, len(base_model_net.layers)))
     for layer in base_model_net.layers[:first_trainable_index]:
-    # for layer in base_model_net.layers[:-34]:
+        # for layer in base_model_net.layers[:-34]:
         layer.trainable = False
 
     # compile the model (done *after* setting layers to non-trainable)
@@ -90,7 +122,7 @@ def transfer_model_fine_tune(num_outputs,
         optimizer=SGD(lr=0.0001, momentum=0.9, nesterov=True),
         loss=f1_loss,
         metrics=["accuracy"])
-    print("Model is using losses %s" % model.loss_functions[0].__name__)
+    logging.info("Model is using losses %s" % model.loss_functions[0].__name__)
 
     return model
 
