@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
+from sklearn.preprocessing import MultiLabelBinarizer
 
 from pyjet.data import ImageDataset
 
@@ -15,12 +16,12 @@ NUM_LABELS = MAX_LABEL - MIN_LABEL + 1
 MIN_IMG_ID = 1
 
 
-def get_data_ids(path_to_data):
+def get_data_paths(path_to_data):
     return os.listdir(path_to_data)
 
 
-def encode_label(label_num):
-    return label_num - MIN_LABEL
+def get_img_id(img_fname):
+    return int(os.path.splitext(img_fname)[0])
 
 
 class IMaterialistData(object):
@@ -37,42 +38,38 @@ class IMaterialistData(object):
         self.path_to_test = path_to_test
         self.img_size = img_size
         self.mode = mode
+        self.label_encoder = MultiLabelBinarizer()
 
     @staticmethod
     def load_images(path_to_imgs):
-        img_ids = get_data_ids(path_to_imgs)
-        img_ids.sort(key=lambda fname: int(os.path.splitext(fname)[0]))
-        x = [None for _ in img_ids]
-        img_ids_list = [None for _ in img_ids]
+        img_fnames = np.array(sorted(get_data_paths(path_to_imgs),
+                              key=get_img_id))
+        img_ids = np.array(map(get_img_id, img_fnames), dtype=int)
+        logging.info("Found {} images in {}".format(len(img_ids),
+                                                    path_to_imgs))
 
+        # Make the x array
+        x = np.empty((len(img_ids),), dtype="O")
         logging.info("Opening images stored in %s" % path_to_imgs)
-        for n, fname in enumerate(tqdm(img_ids)):
-            img_id = int(os.path.splitext(fname)[0])
+        for n, fname in enumerate(tqdm(img_fnames)):
             x[n] = os.path.join(path_to_imgs, fname)
-            img_ids_list[n] = img_id
+            assert img_ids[n] == get_img_id(fname)
 
-        assert all(val is not None for val in x)
-        assert all(img_id is not None for img_id in img_ids_list)
-        img_ids_list = np.array(img_ids_list, dtype=int)
-        x = np.asarray(x, dtype="O")
-        return x, img_ids_list
+        return x, img_ids
 
-    @staticmethod
-    def load_labels(path_to_labels):
+    def load_labels(self, path_to_labels):
         logging.info("Creating labels stored in %s" % path_to_labels)
         csvfile = pd.read_csv(path_to_labels)
+
+        labels = self.label_encoder.fit_transform(csvfile.labelId)
+
         # Create the labels array
-        labels = np.zeros((len(csvfile), NUM_LABELS), dtype=np.int8)
-        for i, label_ids in enumerate(csvfile.labelId):
-            labels[csvfile.imageId[i] - MIN_IMG_ID,
-                   encode_label(np.array(list(map(int,
-                                                  label_ids.split()))))] = 1
         return labels, csvfile.imageId.values
 
     def load_labeled_data(self, path_to_imgs, path_to_labels):
         x, ids = self.load_images(path_to_imgs)
         y, ids2 = self.load_labels(path_to_labels)
-        assert np.all(ids == ids2)
+        assert np.all(ids == ids2), "Image ids and label ids don't match!"
 
         return ImageDataset(
             x, y=y, ids=ids, img_size=self.img_size, mode=self.mode)
@@ -102,18 +99,21 @@ class IMaterialistData(object):
         weights[:, 1] = 1. - ratios
         return weights
 
-    @staticmethod
-    def save_submission(save_path, predictions, img_ids, thresholds=0.5):
+    def save_submission(self, save_path, predictions, img_ids, thresholds=0.5):
         """Thresholds can be a numpy array of shape 1 x NUM_LABELS or float"""
         assert predictions.ndim == 2
         num_test_samples = len(predictions)
-        rows, labels = np.where(predictions >= thresholds)
+        khot_preds = predictions >= thresholds
+
+        # Make the submission array
+        class_preds = self.label_encoder.inverse_transform(khot_preds)
+
         submission_array = np.empty((num_test_samples, 2), dtype="O")
         submission_array[:, 0] = img_ids
         for i in range(num_test_samples):
-            row_labels = labels[rows == i]
-            submission_array[i, 1] = " ".join(
-                str(label + MIN_LABEL) for label in row_labels)
+            submission_array[i, 1] = " ".join(str(label) for label in
+                                              class_preds)
+
         pd.DataFrame(
             submission_array, columns=["image_id", "label_id"]).to_csv(
                 save_path, index=False)

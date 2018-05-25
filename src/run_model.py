@@ -148,7 +148,8 @@ def train_model(model: Model,
 
 def cross_validate_predictions(labels, predictions):
     assert labels.shape == predictions.shape
-    print("Function cross_validate_predictions() --- Entry Point --- labels.shape = predictions.shape = {}".format(labels.shape))
+    print("Function cross_validate_predictions() --- Entry Point --- "
+          "labels.shape = predictions.shape = {}".format(labels.shape))
 
     threshold_search = np.linspace(0., 1., num=50)[1:-1]
     best_thresholds = {"f1": None}

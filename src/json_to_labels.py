@@ -14,7 +14,8 @@ def get_annotations(dataset):
 
 
 def annotation_to_entry(annotation):
-    return {"imageId": annotation["imageId"], "labelId": " ".join(map(str, annotation["labelId"]))}
+    return {"imageId": annotation["imageId"],
+            "labelId": " ".join(map(str, annotation["labelId"]))}
 
 
 def write_annotations_to_csv(annotations, csvfilename):
@@ -29,8 +30,10 @@ def write_annotations_to_csv(annotations, csvfilename):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset", help="Path to the dataset to download.")
-    parser.add_argument("csvfilename", help="Path to the the csvfile to write to.")
+    parser.add_argument("dataset",
+                        help="Path to the dataset to download.")
+    parser.add_argument("csvfilename",
+                        help="Path to the the csvfile to write to.")
     args = parser.parse_args()
 
     # Catch the case where the file already exists
