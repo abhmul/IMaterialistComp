@@ -66,6 +66,21 @@
     "threshold": 0.5
   },
 
+  "transfer-debug-1": {
+    "_comment": "To debug run_model module",
+    "model_id": "transfer-model-0",
+    "batch_size": 32,
+    "epochs": 1,
+    "validation": "use_provided",
+    "img_size": [299, 299],
+    "fine_tune": false,
+    "path_to_train": "../input/validation/",
+
+    "augmenters": [],
+    "test_batch_size": 32,
+    "threshold": "cv"
+  },
+
   "inception-resnet-augment": {
     "model_id": "transfer-model-0",
     "batch_size": 64,
