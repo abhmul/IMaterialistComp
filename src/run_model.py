@@ -153,24 +153,33 @@ def cross_validate_predictions(labels, predictions):
     print("Function cross_validate_predictions() --- Entry Point --- "
           "labels.shape = predictions.shape = {}".format(labels.shape))
 
-    threshold_search = np.linspace(0., 1., num=50)[1:-1]
+    threshold_search = np.linspace(0., 1., num=1000)
     best_thresholds = {"f1": None}
+    # TODO Change f1 score to use better formula of
+    # f1 = 2 * tp / (2 * tp + fp + fn)
+    # This formula is defined sometimes even if precision or recall are not
     metrics = {"f1": f1_score}
 
     for metric_name, metric in metrics.items():
         # Apply the metric to each label and calculate the best threshold
-        thresholds = np.zeros((labels.shape[1]))
+        thresholds = np.zeros((labels.shape[1])) + 0.5
         best_scores = thresholds - float("inf")
         # Try out all the different thresholds
         for t in threshold_search:
             class_preds = predictions > t
-            if np.sum(class_preds) == 0:
-                continue
+            # Calculate the scores on each labels
             scores = np.array([
-                metric(labels[:, i], class_preds[:, i])
+                (metric(labels[:, i], class_preds[:, i])
+                 # TODO remove this check with the new f1 implementation
+                 # Instead the new implementation should return -inf
+                 # if (2 * tp + fp + fn) == 0
+                 if (np.sum(class_preds[:, i]) != 0 and
+                     np.sum(labels[:, i]) != 0)
+                 else -float('inf'))
                 for i in range(labels.shape[1])
+
             ])
-            is_best = (scores >= best_scores)
+            is_best = (scores > best_scores)
             if args.debug:
                 logging.info("CALCULATING threshold = {}".format(t))
                 logging.info("CALCULATING number of threshold improvements = {}".format(np.sum(is_best)))
@@ -180,10 +189,11 @@ def cross_validate_predictions(labels, predictions):
         best_thresholds[metric_name] = thresholds
 
         # Get the average best score for logging
-        best_score = np.mean(best_scores)
+        best_score = np.mean(best_scores[best_scores != -float('inf')])
         print("Validation {metric_name}: {score}".format(
             metric_name=metric_name, score=best_score))
         print("\tThresholds: {}".format(best_thresholds[metric_name]))
+        print("\Scores: {}".format(best_scores))
 
     return best_thresholds
 

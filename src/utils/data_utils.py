@@ -1,5 +1,6 @@
 import os
 import logging
+import pickle as pkl
 
 import numpy as np
 import pandas as pd
@@ -22,6 +23,30 @@ def get_data_paths(path_to_data):
 
 def get_img_id(img_fname):
     return int(os.path.splitext(img_fname)[0])
+
+
+# class LabelEncoder(object):
+#
+#     def __init__(self):
+#         self.classes_ = np.arange(MIN_LABEL, MAX_LABEL + 1).astype(int)
+#         self.encoder = {label: i for i, label in
+#                         enumerate(self.classes_)}
+#         self.decoder = [None] * len(self.encoder)
+#         for label, i in self.encoder.items():
+#             self.decoder[i] = label
+#         assert(all(val is not None for val in self.decoder))
+#
+#     def encode(self, label):
+#         return self.encoder[label]
+#
+#     def decode(self, i):
+#         return self.decoder[i]
+#
+#     def transform(self, labels):
+#         return np.vectorize(lambda label: self.encode(label))(labels)
+#
+#     def inverse_transform(self, nums):
+#         return np.vectorize(lambda i: self.decode(i))(nums)
 
 
 class IMaterialistData(object):
