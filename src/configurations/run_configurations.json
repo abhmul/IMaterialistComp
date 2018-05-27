@@ -101,7 +101,7 @@
       }],
     "test_batch_size": 32,
     "num_test_augment": 5,
-    "threshold": "cv"
+    "threshold": 0.5
   },
 
   "inception-resnet-augment-fine-tune": {
@@ -125,7 +125,7 @@
       }],
     "test_batch_size": 32,
     "num_test_augment": 5,
-    "threshold": "cv"
+    "threshold": 0.5
   },
 
   "densenet": {
@@ -148,7 +148,7 @@
       }],
     "test_batch_size": 32,
     "num_test_augment": 1,
-    "threshold": "cv"
+    "threshold": 0.5
   },
 
   "xception": {
@@ -171,6 +171,6 @@
       }],
     "test_batch_size": 128,
     "num_test_augment": 5,
-    "threshold": "cv"
+    "threshold": 0.5
   }
 }
