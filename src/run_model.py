@@ -285,6 +285,10 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     model.load_weights(utils.get_model_path(model.run_id))
     # Test the model w/ augmentation
     predictions = np.zeros((len(test_data), utils.NUM_LABELS))
+    if run_config["num_test_augment"] == 0:
+        logging.info("Running testing without augmentation")
+        run_config["augmenters"] = tuple()
+        run_config["num_test_augment"] = 1
     for _ in range(run_config["num_test_augment"]):
         predictions += test_model(model, test_data, **run_config)
     predictions /= run_config["num_test_augment"]

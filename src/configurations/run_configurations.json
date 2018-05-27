@@ -100,7 +100,7 @@
       "vertical_flip": true
       }],
     "test_batch_size": 32,
-    "num_test_augment": 5,
+    "num_test_augment": 1,
     "threshold": 0.5
   },
 
