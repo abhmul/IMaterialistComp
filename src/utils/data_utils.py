@@ -146,12 +146,13 @@ class IMaterialistData(object):
 
         # Make the submission array
         class_preds = self.label_encoder.inverse_transform(khot_preds)
+        assert(len(class_preds) == num_test_samples)
 
         submission_array = np.empty((num_test_samples, 2), dtype="O")
         submission_array[:, 0] = img_ids
         for i in range(num_test_samples):
             submission_array[i, 1] = " ".join(str(label) for label in
-                                              class_preds)
+                                              class_preds[i])
 
         pd.DataFrame(
             submission_array, columns=["image_id", "label_id"]).to_csv(

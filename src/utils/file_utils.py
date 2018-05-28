@@ -23,3 +23,7 @@ def get_submission_path(run_id):
 
 def get_cv_path(run_id):
     return os.path.join(safe_open_dir("../cv/"), str(run_id) + ".csv")
+
+
+def get_prediction_path(run_id):
+    return os.path.join(safe_open_dir("../predictions/"), str(run_id) + ".csv")

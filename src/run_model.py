@@ -298,6 +298,9 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     else:
         thresholds = run_config["threshold"]
 
+    # Cache the predictions for later
+    np.save(utils.get_prediction_path(model.run_id), predictions)
+
     data.save_submission(
         utils.get_submission_path(model.run_id),
         predictions,
