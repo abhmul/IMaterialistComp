@@ -56,16 +56,17 @@ def create_transfer_model(num_outputs,
                           mlp_units=1024,
                           **kwargs):
     input_shape = (kwargs["img_size"]) + (3,)
-    inputs = Input(input_shape)
+    # inputs = Input(input_shape)
 
     # create the base pre-trained model
+    print(input_shape)
     base_model = imagenet_dict[base_model](
         weights='imagenet', include_top=False, input_shape=input_shape)
 
     # add a global spatial average pooling layer
 
-    x = base_model(inputs)
-    x = Flatten()(x)
+    # x = base_model(inputs)
+    x = Flatten()(base_model.output)
     # x = Dropout(0.5)(x)
     # let's add a fully-connected layer
     # x = Dense(mlp_units)(x)
@@ -76,7 +77,7 @@ def create_transfer_model(num_outputs,
     predictions = Dense(num_outputs, activation='sigmoid')(x)
 
     # this is the model we will train
-    model = Model(inputs=inputs, outputs=predictions)
+    model = Model(inputs=base_model.input, outputs=predictions)
 
     return model, base_model
 
@@ -128,11 +129,11 @@ def transfer_model_fine_tune(num_outputs,
                  (first_trainable_index, len(base_model_net.layers)))
     for layer in base_model_net.layers[:first_trainable_index]:
         # for layer in base_model_net.layers[:-34]:
-        layer.trainable = True
+        layer.trainable = False
 
     # compile the model (done *after* setting layers to non-trainable)
     model.compile(
-        optimizer=SGD(lr=0.0001, momentum=0.9, nesterov=True),
+        optimizer=SGD(lr=0.0001, momentum=0.9),
         loss="binary_crossentropy",
         metrics=["accuracy", f1_loss])
     logging.info("Model is using losses %s" % model.loss_functions[0].__name__)

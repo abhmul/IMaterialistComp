@@ -84,18 +84,18 @@
   "inception-resnet-augment": {
     "model_id": "transfer-model-0",
     "batch_size": 32,
-    "epochs": 25,
+    "epochs": 1,
     "epoch_size": 10000,
     "validation": "use_provided",
     "img_size": [299, 299],
 
     "augmenters": [{
       "name": "image",
-      "rotation_range": 15,
-      "width_shift_range": 0.1,
-      "height_shift_range": 0.1,
-      "shear_range": 0.05,
-      "zoom_range": 0.1,
+      "rotation_range": 30,
+      "width_shift_range": 0.2,
+      "height_shift_range": 0.2,
+      "shear_range": 0.1,
+      "zoom_range": 0.2,
       "horizontal_flip": true,
       "vertical_flip": true
       }],
@@ -107,20 +107,20 @@
   "inception-resnet-augment-fine-tune": {
     "model_id": "transfer-model-0",
     "batch_size": 32,
-    "epochs": 50,
+    "epochs": 100,
     "epoch_size": 10000,
     "fine_tune": true,
     "validation": "use_provided",
     "img_size": [299, 299],
-    "path_to_train": "../input/validation",
+    "path_to_train": "../input/train",
 
     "augmenters": [{
       "name": "image",
-      "rotation_range": 15,
-      "width_shift_range": 0.1,
-      "height_shift_range": 0.1,
-      "shear_range": 0.05,
-      "zoom_range": 0.1,
+      "rotation_range": 30,
+      "width_shift_range": 0.2,
+      "height_shift_range": 0.2,
+      "shear_range": 0.1,
+      "zoom_range": 0.2,
       "horizontal_flip": true,
       "vertical_flip": true
       }],

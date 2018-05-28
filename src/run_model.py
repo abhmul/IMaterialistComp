@@ -1,7 +1,7 @@
 import logging
 import argparse
 import numpy as np
-from sklearn.metrics import f1_score
+# from sklearn.metrics import f1_score
 
 from pyjet.data import ImageDataset
 from keras.models import Model
@@ -10,6 +10,7 @@ from keras.callbacks import ModelCheckpoint
 from callbacks import Plotter
 from configurations import load_config
 import utils
+from utils import f1_score
 
 from keras import backend as K
 
@@ -50,7 +51,7 @@ parser.add_argument(
 def train_model(model: Model,
                 train_dataset: ImageDataset,
                 val_dataset: ImageDataset,
-                augmenters=tuple(),
+                augmenters=(),
                 epochs=100,
                 batch_size=32,
                 epoch_size=10000,
@@ -108,7 +109,7 @@ def train_model(model: Model,
             save_weights_only=True,
             mode="min",
             verbose=1),
-                    Plotter(
+        Plotter(
             monitor="loss",
             scale="linear",
             plot_during_train=plot,
@@ -148,46 +149,36 @@ def cross_validate_predictions(labels, predictions):
           "labels.shape = predictions.shape = {}".format(labels.shape))
 
     threshold_search = np.linspace(0., 1., num=1000)
-    best_thresholds = {"f1": None}
-    # TODO Change f1 score to use better formula of
-    # f1 = 2 * tp / (2 * tp + fp + fn)
-    # This formula is defined sometimes even if precision or recall are not
-    metrics = {"f1": f1_score}
 
-    for metric_name, metric in metrics.items():
-        # Apply the metric to each label and calculate the best threshold
-        thresholds = np.zeros((labels.shape[1])) + 0.5
-        best_scores = thresholds - float("inf")
-        # Try out all the different thresholds
-        for t in threshold_search:
-            class_preds = predictions > t
-            # Calculate the scores on each labels
-            scores = np.array([
-                (metric(labels[:, i], class_preds[:, i])
-                 # TODO remove this check with the new f1 implementation
-                 # Instead the new implementation should return -inf
-                 # if (2 * tp + fp + fn) == 0
-                 if (np.sum(class_preds[:, i]) != 0 and
-                     np.sum(labels[:, i]) != 0)
-                 else -float('inf'))
-                for i in range(labels.shape[1])
+    # Apply the metric to each label and calculate the best threshold
+    best_thresholds = np.full((labels.shape[1], ), 0.5)
+    best_scores = np.full((labels.shape[1], ), -float("inf"))
+    # Try out all the different thresholds
+    for t in threshold_search:
+        class_preds = predictions >= t
+        # Calculate the scores on each labels
+        scores = f1_score(labels, class_preds)
+        # Figure out for which labels the score improved
+        is_best = (scores >= best_scores)
+        if args.debug:
+            logging.info("CALCULATING threshold = {}".format(t))
+            logging.info("CALCULATING number of threshold "
+                         "improvements = {}".format(np.sum(is_best)))
+        # Set the new best thresholds
+        best_thresholds[is_best] = t
+        best_scores[is_best] = scores[is_best]
 
-            ])
-            is_best = (scores > best_scores)
-            if args.debug:
-                logging.info("CALCULATING threshold = {}".format(t))
-                logging.info("CALCULATING number of threshold improvements = {}".format(np.sum(is_best)))
-            thresholds[is_best] = t
-            best_scores[is_best] = scores[is_best]
-        # Store the best thresholds
-        best_thresholds[metric_name] = thresholds
-
-        # Get the average best score for logging
-        best_score = np.mean(best_scores[best_scores != -float('inf')])
-        print("Validation {metric_name}: {score}".format(
-            metric_name=metric_name, score=best_score))
-        print("\tThresholds: {}".format(best_thresholds[metric_name]))
-        print("\Scores: {}".format(best_scores))
+    # Any thresholds of 1 means it never guesses that never guesses that class
+    # Replace with default value of 0.5
+    no_labels = best_thresholds == 1.
+    logging.info("Found {} labels with no validation "
+                 "examples.".format(np.count_nonzero(no_labels)))
+    best_thresholds[no_labels] = 0.5
+    # Get the average best score for logging (disregard no labels)
+    best_score = np.mean(best_scores[~no_labels])
+    print("Validation f1: {score}".format(score=best_score))
+    print("\tThresholds: {}".format(best_thresholds))
+    print("\Scores: {}".format(best_scores))
 
     return best_thresholds
 
@@ -213,14 +204,14 @@ def cross_validate_model(model: Model,
     print("Best Thresholds:")
     print(best_thresholds)
     # Save the results
-    np.savez(utils.get_cv_path(model.run_id), **best_thresholds)
+    np.save(utils.get_cv_path(model.run_id), best_thresholds)
 
     return best_thresholds
 
 
 def test_model(model: Model,
                test_dataset: ImageDataset,
-               augmenters=tuple(),
+               augmenters=(),
                test_batch_size=32,
                **kwargs):
     logging.info("Testing model with id %s" % model.run_id)
@@ -288,7 +279,8 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     predictions /= run_config["num_test_augment"]
     # Load the thresholds if we need to
     if run_config["threshold"] == "cv":
-        thresholds = np.load(utils.get_cv_path(model.run_id))["f1"]
+        thresholds = np.load(utils.get_cv_path(model.run_id)).reshape(
+            (1, predictions.shape[1]))
     else:
         thresholds = run_config["threshold"]
 
