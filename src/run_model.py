@@ -113,18 +113,6 @@ def train_model(model: Model,
             scale="linear",
             plot_during_train=plot,
             save_to_file=utils.get_plot_path(model.run_id),
-            block_on_end=False),
-        Plotter(
-            monitor="loss",
-            scale="linear",
-            plot_during_train=plot,
-            save_to_file=utils.get_plot_path(model.run_id),
-            block_on_end=False),
-        Plotter(
-            monitor="f1_loss",
-            scale="linear",
-            plot_during_train=plot,
-            save_to_file=utils.get_plot_path(model.run_id + "_f1"),
             block_on_end=False)
     ]
 
@@ -264,7 +252,7 @@ def train(data, run_config):
     else:
         raise NotImplementedError(run_config["validation"])
     # Create the model
-    model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
+    model = run_config["model_func"](num_outputs=228)
 
     # Train the model
     train_model(model, train_data, val_data, **run_config)
