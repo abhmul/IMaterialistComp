@@ -12,7 +12,8 @@ from pyjet.data import ImageDataset
 
 MAX_LABEL = 228
 MIN_LABEL = 1
-NUM_LABELS = MAX_LABEL - MIN_LABEL + 1
+NUM_LABELS = 225  #MAX_LABEL - MIN_LABEL + 1
+
 
 MIN_IMG_ID = 1
 

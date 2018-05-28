@@ -128,7 +128,7 @@ def transfer_model_fine_tune(num_outputs,
                  (first_trainable_index, len(base_model_net.layers)))
     for layer in base_model_net.layers[:first_trainable_index]:
         # for layer in base_model_net.layers[:-34]:
-        layer.trainable = False
+        layer.trainable = True
 
     # compile the model (done *after* setting layers to non-trainable)
     model.compile(

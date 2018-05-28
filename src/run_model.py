@@ -66,12 +66,12 @@ def train_model(model: Model,
 
     if load_model:
         logging.info("Reloading model from weights")
-        model.load_weights(utils.get_model_path(model.run_id))
+        model.load_weights(utils.get_model_path(model.run_id), by_name=True)
     if model.fine_tune:
         old_run_id = model.run_id[:-len("-fine-tune")]
         logging.info(
             "Fine tuning model with weights from {}".format(old_run_id))
-        model.load_weights(utils.get_model_path(old_run_id))
+        model.load_weights(utils.get_model_path(old_run_id), by_name=True)
 
     steps = epoch_size // batch_size
     val_steps = epoch_size // 10 // batch_size
@@ -108,6 +108,12 @@ def train_model(model: Model,
             save_weights_only=True,
             mode="min",
             verbose=1),
+                    Plotter(
+            monitor="loss",
+            scale="linear",
+            plot_during_train=plot,
+            save_to_file=utils.get_plot_path(model.run_id),
+            block_on_end=False),
         Plotter(
             monitor="loss",
             scale="linear",
@@ -271,7 +277,7 @@ def cross_validate(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    model.load_weights(utils.get_model_path(model.run_id))
+    model.load_weights(utils.get_model_path(model.run_id), by_name=True)
 
     return cross_validate_model(model, validation_data, **run_config)
 
@@ -282,7 +288,7 @@ def test(data: utils.IMaterialistData, run_config, model=None):
     # Create the model
     if model is None:
         model = run_config["model_func"](num_outputs=utils.NUM_LABELS)
-    model.load_weights(utils.get_model_path(model.run_id))
+    model.load_weights(utils.get_model_path(model.run_id), by_name=True)
     # Test the model w/ augmentation
     predictions = np.zeros((len(test_data), utils.NUM_LABELS))
     if run_config["num_test_augment"] == 0:
